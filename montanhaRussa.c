@@ -38,40 +38,45 @@ int turnoC[M_CARROS];
 int ticketC = 1;
 int proxC = 1;
 //semaforo
-int filaEmbarcar;
-int encheuCarro;
-int filaDesembarcar;
-int esvaziouCarro;
 int s1 = 1;
 int s2 = 1;
-int passageirosABordo;
-int passageirosDesembarcados;
+int filaEmbarcar = 0;
+int encheuCarro = 0;
+int filaDesembarcar = 0;
+int esvaziouCarro = 0;
+int passageirosABordo = 0;
+int passageirosDesembarcados = 0;
 void *passageiro(void *tid){
 	int p = (int) tid;
+	printf("%d - passageiro iniciou\n", p);
 	//INICIO DO TICKET
 	// turno[p] = __sync_fetch_and_add(&ticket,1);
 	// while(turno[p] != prox);
-	P(&filaEmbarcar);
+	//P(&filaEmbarcar);
+	while(!filaEmbarcar);
 	//embarca
 	printf("%d - passageiro embarcando\n", p);
 	P(&s1);
-		passageirosABordo += 1;
-		if(passageirosABordo == CAPACIDADE){
+		if(passageirosABordo == CAPACIDADE - 1){
+			filaEmbarcar = 0;
 			printf("%d - passageiro foi o último a entrar\n", p);
 			V(&encheuCarro);
 			passageirosABordo = 0;
+		}else{
+			passageirosABordo += 1;
 		}
 	V(&s1);
-	printf("%d - passou1\n",p);
-	P(&filaDesembarcar);
-	printf("%d - passou2\n",p);
+	while(!filaDesembarcar);
 	//desembarca
-	printf("%d - passageiro desembarcando\n", p);
 	P(&s2);
-		passageirosDesembarcados += 1;
-		if(passageirosDesembarcados == CAPACIDADE){
+		printf("%d - passageiro desembarcando\n", p);
+		if(passageirosDesembarcados == CAPACIDADE - 1){
+			filaDesembarcar = 0;
+			printf("%d - passageiro foi o último a descer\n", p);
 			V(&esvaziouCarro);
 			passageirosDesembarcados = 0;
+		}else{
+			passageirosDesembarcados += 1;
 		}
 	V(&s2);
 	//FIM DO TICKET
@@ -129,10 +134,10 @@ int main(int argc, char *argv[]){
 		pthread_create(&passageiros[i],NULL,passageiro,(void *)i);
 	}
 	for(i = 0; i < M_CARROS; ++i){
-		pthread_join(&carros[i],NULL);
+		pthread_join(carros[i],NULL);
 	}
 	for(i = 0; i < N_PASSAGEIROS; ++i){
-		pthread_join(&passageiros[i],NULL);
+		pthread_join(passageiros[i],NULL);
 	}
 	printf("N_PASSAGEIROS: %d\n", N_PASSAGEIROS);
 	printf("M_CARROS: %d\n", M_CARROS);
