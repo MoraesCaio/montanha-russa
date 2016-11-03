@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <time.h>
 
-#define N_PASSAGEIROS 6
-#define M_CARROS 2
+#define N_PASSAGEIROS 3
+#define M_CARROS 1
 #define CAPACIDADE 3
 #define MAX_VOLTAS 1
 void P(int* s) {
@@ -29,10 +29,53 @@ void esperaMontanhaRussa(int c);
 void daUmaVolta(int c); //tempo aleatorio
 void esperaEsvaziar(int c);
 
-int semaphore = 1;
+//ticket passageiro
+int turno[N_PASSAGEIROS];
+int ticket = 1;
+int prox = 1;
+//ticket carro
+int turnoC[M_CARROS];
+int ticketC = 1;
+int proxC = 1;
+//semaforo
+int filaEmbarcar;
+int encheuCarro;
+int filaDesembarcar;
+int esvaziouCarro;
+int s1 = 1;
+int s2 = 1;
+int passageirosABordo;
+int passageirosDesembarcados;
 void *passageiro(void *tid){
 	int p = (int) tid;
-
+	//INICIO DO TICKET
+	// turno[p] = __sync_fetch_and_add(&ticket,1);
+	// while(turno[p] != prox);
+	P(&filaEmbarcar);
+	//embarca
+	printf("%d - passageiro embarcando\n", p);
+	P(&s1);
+		passageirosABordo += 1;
+		if(passageirosABordo == CAPACIDADE){
+			printf("%d - passageiro foi o último a entrar\n", p);
+			V(&encheuCarro);
+			passageirosABordo = 0;
+		}
+	V(&s1);
+	printf("%d - passou1\n",p);
+	P(&filaDesembarcar);
+	printf("%d - passou2\n",p);
+	//desembarca
+	printf("%d - passageiro desembarcando\n", p);
+	P(&s2);
+		passageirosDesembarcados += 1;
+		if(passageirosDesembarcados == CAPACIDADE){
+			V(&esvaziouCarro);
+			passageirosDesembarcados = 0;
+		}
+	V(&s2);
+	//FIM DO TICKET
+	// prox++;
 	/*while(voltas < MAX_VOLTAS){
 		turno[p] = __sync_fetch_and_add(&numero,1);
 		esperaVez(p);
@@ -45,7 +88,20 @@ void *passageiro(void *tid){
 }
 void *carro(void *tid){
 	int c = (int) tid;
-	turnoCarro[c] = __sync_fetch_and_add(&numeroCarro,1);
+	//INICIO DO TICKET
+	// turnoC[c] = __sync_fetch_and_add(&ticketC,1);
+	// while(turnoC[c] != proxC);
+	//carregando passageiros
+	printf("%d - carro esperando passageiros embarcarem\n", c);
+	V(&filaEmbarcar);
+	P(&encheuCarro);
+	printf("%d - carro dando volta\n", c);
+	//descarrega
+	printf("%d - carro esperando passageiros desembarcarem\n", c);
+	V(&filaDesembarcar);
+	P(&esvaziouCarro);
+	//FIM DO TICKET
+	// proxC++;
 	/*while(passageiroEsperando > 0){
 		esperaEncher(c);
 		esperaMontanhaRussa(c);
